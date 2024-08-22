@@ -11,6 +11,7 @@
 #' @param cond2 A character string specifying the second condition. Defaults to "healthy".
 #' @param output_dir A character string specifying the directory to save the results. 
 #' Default to make a folder named "diffpath_cond1_vs_cond2" under current working directory.
+#' @param make_volcano_plots A logical value indicating whether to generate a volcano plot. Defaults to TRUE.
 #'
 #' @return A data frame containing the results of the Wilcoxon tests, including p-values,
 #' adjusted p-values, and differences in pathway scores.
@@ -26,7 +27,15 @@
 #' @examples
 #' for (j in unique(tam$celltype)) {DEpathway(tam, celltype = j, cond1 = "tumor", cond2 = "healthy")}
 
-DEpathway <- function(tam, celltype = "T_cell", cond1 = "Fish", cond2 = "LFD", output_dir = getwd()) {
+DEpathway <- function(tam, 
+                      celltype = "T_cell", 
+                      cond1 = "Fish", 
+                      cond2 = "LFD", 
+                      output_dir = getwd(),
+                      make_volcano_plots = TRUE,
+                      fig.wid = 7,
+                      fig.wid = 5
+) {
   # Subset the data for the specified cell type
   cell <- subset(tam, subset = celltype == celltype)
   tumor <- subset(cell, subset = condition == cond1)
@@ -82,8 +91,29 @@ DEpathway <- function(tam, celltype = "T_cell", cond1 = "Fish", cond2 = "LFD", o
     message("Folder created: ", folder_path)
   }
   
-  # Save the results as a CSV file
-  write.csv(results, file = file.path(folder_path, str_c(celltype, ".csv")), row.names = FALSE)
-  
-  return(results)
+  if (make_volcano_plot) {
+    DE <- results %>% 
+      mutate(group = case_when(
+        adj_p_value < 0.05 & difference > 0.2 ~ "Upregulated",
+        adj_p_value < 0.05 & difference < -0.2 ~ "Downregulated",
+        TRUE ~ "No difference"
+      ))
+    
+    topgenes <- DE %>% 
+      filter(group %in% c("Upregulated", "Downregulated")) %>% 
+      group_by(group) %>% 
+      pull(pathway)
+    
+    p <- ggplot(DE, aes(x = difference, y = -log10(adj_p_value))) +
+      geom_point(size = 1, aes(color = group)) +
+      scale_color_manual(values = c("#4197D9", "grey", "orange")) +
+      geom_vline(xintercept = c(-0.2, 0.2), linetype = 2) +
+      geom_hline(yintercept = -log10(0.05), linetype = 2) +
+      theme_classic() +
+      geom_text_repel(data = subset(DE, pathway %in% topgenes), aes(label = pathway), 
+                      min.segment.length = 0, seed = 42, box.padding = 0.5, max.overlaps = 25) +
+      ggtitle(str_c("Difference of ", celltype, " between ", cond1, " and ", cond2))
+    
+    ggsave(p, filename = file.path(folder_path, str_c(celltype, ".pdf")), width = 7, height = 5)
+  }
 }
