@@ -11,7 +11,7 @@
 #' @param cond2 A character string specifying the second condition. Defaults to "healthy".
 #' @param output_dir A character string specifying the directory to save the results. 
 #' Default to make a folder named "diffpath_cond1_vs_cond2" under current working directory.
-#' @param make_volcano_plots A logical value indicating whether to generate a volcano plot. Defaults to TRUE.
+#' @param make_volcano_plot A logical value indicating whether to generate a volcano plot. Defaults to TRUE.
 #'
 #' @return A data frame containing the results of the Wilcoxon tests, including p-values,
 #' adjusted p-values, and differences in pathway scores.
@@ -29,10 +29,10 @@
 
 DEpathway <- function(tam, 
                       celltype = "T_cell", 
-                      cond1 = "Fish", 
-                      cond2 = "LFD", 
+                      cond1 = "tumor", 
+                      cond2 = "healthy", 
                       output_dir = getwd(),
-                      make_volcano_plots = TRUE,
+                      make_volcano_plot = TRUE,
                       fig_wid = 7,
                       fig_wid = 5
 ) {
@@ -73,10 +73,9 @@ DEpathway <- function(tam,
     }
   }
   
-  # Adjust p-values for multiple comparisons
   adjusted_p_values <- p.adjust(p_values, method = "BH")
   
-  # Combine results into a data frame
+  # results to a data frame
   results <- data.frame(
     pathway = rownames(df_tumor),
     p_value = p_values,
@@ -90,7 +89,8 @@ DEpathway <- function(tam,
     dir.create(folder_path, recursive = TRUE)
     message("Folder created: ", folder_path)
   }
-  
+
+  #make volcanoplots if make_volcano_plot = TRUE
   if (make_volcano_plot) {
     DE <- results %>% 
       mutate(group = case_when(
