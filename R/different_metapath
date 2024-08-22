@@ -1,33 +1,3 @@
-#' Compare Metabolic Pathway Differences Between Two Conditions
-#'
-#' This function compares the metabolic pathway differences between two conditions
-#' for a specified cell type within a Seurat object. The function performs
-#' Wilcoxon tests for each pathway and saves the results to a CSV file.
-#'
-#' @param tam A Seurat object containing the single-cell RNA-seq data. 
-#' Please make sure that the seurat@meta.data has "celltype" column stored cell type information, 
-#' and "condition" column stored the condition information you want to compare with.
-#' @param celltype A character string specifying the cell type to analyze.
-#' @param cond1 A character string specifying the first condition. Defaults to "tumor".
-#' @param cond2 A character string specifying the second condition. Defaults to "healthy".
-#' @param output_dir A character string specifying the directory to save the results. 
-#' Default to make a folder named "diffpath_cond1_vs_cond2" under current working directory.
-#' @param make_volcano_plot A logical value indicating whether to generate a volcano plot. Defaults to TRUE.
-#'
-#' @return A data frame containing the results of the Wilcoxon tests, including p-values,
-#' adjusted p-values, and differences in pathway scores.
-#' @export
-#'
-#' @importFrom dplyr mutate case_when
-#' @importFrom stringr str_c
-#' @importFrom coin wilcox_test pvalue
-#' @importFrom stats sd p.adjust
-#' @importFrom ggplot2 ggplot geom_point scale_color_manual geom_vline geom_hline theme_classic
-#' @importFrom ggrepel geom_text_repel
-#'
-#' @examples
-#' for (j in unique(tam$celltype)) {DEpathway(tam, celltype = j, cond1 = "tumor", cond2 = "healthy")}
-
 DEpathway <- function(tam, 
                       celltype = "T_cell", 
                       cond1 = "tumor", 
@@ -90,6 +60,8 @@ DEpathway <- function(tam,
     dir.create(folder_path, recursive = TRUE)
     message("Folder created: ", folder_path)
   }
+
+  write.csv(results,str_c(folder_path,"/",celltype,".csv"))
 
   #make volcanoplots if make_volcano_plot = TRUE
   if (make_volcano_plot) {
