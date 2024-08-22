@@ -5,7 +5,8 @@
 #' Wilcoxon tests for each pathway and saves the results to a CSV file.
 #'
 #' @param tam A Seurat object containing the single-cell RNA-seq data. 
-#' Please make sure that the seurat@meta.data has "celltype" stored cell type information, and "condition stored the condition information you want to compare with.
+#' Please make sure that the seurat@meta.data has "celltype" column stored cell type information, 
+#' and "condition" column stored the condition information you want to compare with.
 #' @param celltype A character string specifying the cell type to analyze.
 #' @param cond1 A character string specifying the first condition. Defaults to "tumor".
 #' @param cond2 A character string specifying the second condition. Defaults to "healthy".
@@ -84,7 +85,7 @@ DEpathway <- function(tam,
   )
   
   # Create the output directory if it doesn't exist
-  folder_path <- file.path(output_dir, str_c("diffpath_", cond1, "_vs_", cond2))
+  folder_path <- file.path(output_dir, str_c("/diffpath_", cond1, "_vs_", cond2))
   if (!dir.exists(folder_path)) {
     dir.create(folder_path, recursive = TRUE)
     message("Folder created: ", folder_path)
