@@ -33,8 +33,8 @@ DEpathway <- function(tam,
                       cond2 = "LFD", 
                       output_dir = getwd(),
                       make_volcano_plots = TRUE,
-                      fig.wid = 7,
-                      fig.wid = 5
+                      fig_wid = 7,
+                      fig_wid = 5
 ) {
   # Subset the data for the specified cell type
   cell <- subset(tam, subset = celltype == celltype)
@@ -114,6 +114,6 @@ DEpathway <- function(tam,
                       min.segment.length = 0, seed = 42, box.padding = 0.5, max.overlaps = 25) +
       ggtitle(str_c("Difference of ", celltype, " between ", cond1, " and ", cond2))
     
-    ggsave(p, filename = file.path(folder_path, str_c(celltype, ".pdf")), width = 7, height = 5)
+    ggsave(p, filename = file.path(folder_path, str_c(celltype, ".pdf")), width = fig_wid, height = fig_ht)
   }
 }
