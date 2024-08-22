@@ -85,7 +85,7 @@ DEpathway <- function(tam,
   )
   
   # Create the output directory if it doesn't exist
-  folder_path <- file.path(output_dir, str_c("/diffpath_", cond1, "_vs_", cond2))
+  folder_path <- file.path(output_dir, str_c("diffpath_", cond1, "_vs_", cond2))
   if (!dir.exists(folder_path)) {
     dir.create(folder_path, recursive = TRUE)
     message("Folder created: ", folder_path)
