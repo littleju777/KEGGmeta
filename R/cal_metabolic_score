@@ -24,16 +24,16 @@ get_metascore <- function(tam,
   ) {
   # Load the geneset data from the package
   data_name = str_c(species,"_meta_lipid_geneset")
-  data(data_name, package = "KEGG")
+  data(data_name, package = "KEGGmeta")
   
   # Compute meta scores
   meta <- irGSEA.score(object = tam, assay = assay_name, slot = slot_name,
-                       custom = TRUE, geneset = meta.geneset, method = method,
+                       custom = TRUE, geneset = meta.geneset, method = "UCell",
                        kcdf = 'Gaussian')
   
   # Compute lipid scores
   lipid <- irGSEA.score(object = tam, assay = assay_name, slot = slot_name,
-                        custom = TRUE, geneset = fatty.geneset, method = method,
+                        custom = TRUE, geneset = fatty.geneset, method = "UCell",
                         kcdf = 'Gaussian')
   
   # Store the meta_UCell data in the Seurat object
