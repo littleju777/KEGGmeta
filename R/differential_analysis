@@ -1,0 +1,89 @@
+#' Compare Metabolic Pathway Differences Between Two Conditions
+#'
+#' This function compares the metabolic pathway differences between two conditions
+#' for a specified cell type within a Seurat object. The function performs
+#' Wilcoxon tests for each pathway and saves the results to a CSV file.
+#'
+#' @param tam A Seurat object containing the single-cell RNA-seq data. 
+#' Please make sure that the seurat@meta.data has "celltype" stored cell type information, and "condition stored the condition information you want to compare with.
+#' @param celltype A character string specifying the cell type to analyze.
+#' @param cond1 A character string specifying the first condition. Defaults to "tumor".
+#' @param cond2 A character string specifying the second condition. Defaults to "healthy".
+#' @param output_dir A character string specifying the directory to save the results. 
+#' Default to make a folder named "diffpath_cond1_vs_cond2" under current working directory.
+#'
+#' @return A data frame containing the results of the Wilcoxon tests, including p-values,
+#' adjusted p-values, and differences in pathway scores.
+#' @export
+#'
+#' @importFrom dplyr mutate case_when
+#' @importFrom stringr str_c
+#' @importFrom coin wilcox_test pvalue
+#' @importFrom stats sd p.adjust
+#' @importFrom ggplot2 ggplot geom_point scale_color_manual geom_vline geom_hline theme_classic
+#' @importFrom ggrepel geom_text_repel
+#'
+#' @examples
+#' for (j in unique(tam$celltype)) {DEpathway(tam, celltype = j, cond1 = "tumor", cond2 = "healthy")}
+
+DEpathway <- function(tam, celltype = "T_cell", cond1 = "Fish", cond2 = "LFD", output_dir = getwd()) {
+  # Subset the data for the specified cell type
+  cell <- subset(tam, subset = celltype == celltype)
+  tumor <- subset(cell, subset = condition == cond1)
+  healthy <- subset(cell, subset = condition == cond2)
+  
+  # Combine meta and lipid scores for tumor and healthy conditions
+  df_tumor <- rbind(as.data.frame(tumor@assays[["meta_UCell"]]@scale.data),
+                    as.data.frame(tumor@assays[["lipid_UCell"]]@scale.data))
+  
+  df_healthy <- rbind(as.data.frame(healthy@assays[["meta_UCell"]]@scale.data),
+                      as.data.frame(healthy@assays[["lipid_UCell"]]@scale.data))
+  
+  # Initialize vectors for storing results
+  p_values <- numeric(nrow(df_tumor))
+  changes <- numeric(nrow(df_tumor))
+  
+  # Perform Wilcoxon test for each pathway
+  for (i in seq_len(nrow(df_tumor))) {
+    sd_tumor <- sd(as.numeric(df_tumor[i, ]), na.rm = TRUE)
+    sd_healthy <- sd(as.numeric(df_healthy[i, ]), na.rm = TRUE)
+    
+    if (!is.na(sd_tumor) && sd_tumor != 0 && !is.na(sd_healthy) && sd_healthy != 0) {
+      combined_data <- data.frame(
+        value = c(as.numeric(df_tumor[i, ]), as.numeric(df_healthy[i, ])),
+        group = factor(c(rep("tumor", ncol(df_tumor)), rep("healthy", ncol(df_healthy))))
+      )
+      
+      test_result <- wilcox_test(value ~ group, data = combined_data, distribution = "exact")
+      p_values[i] <- pvalue(test_result)
+      
+      changes[i] <- (mean(as.numeric(df_tumor[i, ]), na.rm = TRUE) - mean(as.numeric(df_healthy[i, ]), na.rm = TRUE)) / mean(as.numeric(df_healthy[i, ]), na.rm = TRUE)
+    } else {
+      p_values[i] <- NA
+      changes[i] <- NA
+    }
+  }
+  
+  # Adjust p-values for multiple comparisons
+  adjusted_p_values <- p.adjust(p_values, method = "BH")
+  
+  # Combine results into a data frame
+  results <- data.frame(
+    pathway = rownames(df_tumor),
+    p_value = p_values,
+    adj_p_value = adjusted_p_values,
+    difference = changes
+  )
+  
+  # Create the output directory if it doesn't exist
+  folder_path <- file.path(output_dir, str_c("diffpath_", cond1, "_vs_", cond2))
+  if (!dir.exists(folder_path)) {
+    dir.create(folder_path, recursive = TRUE)
+    message("Folder created: ", folder_path)
+  }
+  
+  # Save the results as a CSV file
+  write.csv(results, file = file.path(folder_path, str_c(celltype, ".csv")), row.names = FALSE)
+  
+  return(results)
+}
