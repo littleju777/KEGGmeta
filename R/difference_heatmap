@@ -124,3 +124,91 @@ diff_heatmap <- function(compare = "Fish_vs_LFD",df_folder = getwd()) {
         padding = unit(c(2, 2, 2, 40), "mm"))
   dev.off()
 }
+
+
+
+
+#' Generate a Heatmap for a Subset of Pathways
+#'
+#' This function generates a heatmap for a subset of pathways based on differential expression
+#' and adjusted p-values. The subset of pathways is provided by the user, and the heatmap is saved
+#' as a PDF file.
+#'
+#' @param compare A character string specifying the comparison identifier (e.g., "Fish_vs_LFD"). Defaults to "Fish_vs_LFD".
+#' @param subset_path A character vector containing the names of the pathways to include in the heatmap.
+#' @param df_folder A character string specifying the directory containing the differential expression data.
+#' Defaults to the current working directory.
+#'
+#' @return The heatmap is generated and saved as a PDF file. The function does not return any objects.
+#' @export
+#'
+#' @importFrom dplyr select all_of
+#' @importFrom ComplexHeatmap Heatmap draw
+#' @importFrom circlize colorRamp2
+#' @importFrom grid unit grid.text
+#' @importFrom grDevices pdf dev.off
+#' @importFrom stringr str_c
+#'
+#' @examples
+#' subset_path <- c("Pathway1", "Pathway2", "Pathway3")
+#' diff_heatmap_subset(compare = "Fish_vs_LFD", subset_path = subset_path)
+diff_heatmap_subset <- function(compare = "Fish_vs_LFD", subset_path, df_folder = getwd(), fig_ht = 5, fig_wid = 7) {
+  # Read and merge the difference and adjusted p-value data
+  results_path = str_c(df_folder, "/diffpath_", compare)
+  df.diff <- read_extract_merge(compare = compare, "difference", df_folder = results_path)
+  df.adjp <- read_extract_merge(compare = compare, "adj_p_value", df_folder = results_path)
+  
+  # Check if the dimensions and row/column names match
+  if (!all(dim(df.diff) == dim(df.adjp))) {
+    stop("Dimensions of expression data and p-value data do not match.")
+  }
+  if (!all(rownames(df.diff) == rownames(df.adjp)) || !all(colnames(df.diff) == colnames(df.adjp))) {
+    stop("Row and column names of expression data and p-value data do not match.")
+  }
+  
+  # Subset the data to include only the specified pathways
+  subset.diff <- df.diff[rownames(df.diff) %in% subset_df, ]
+  subset.adjp <- df.adjp[rownames(df.adjp) %in% subset_df, ]
+  
+  # Replace NA and Inf values in the expression data and p-value data
+  subset.diff[is.na(subset.diff)] <- 0
+  subset.adjp[is.na(subset.adjp)] <- 1
+  subset.diff <- as.matrix(subset.diff)
+  subset.adjp <- as.matrix(subset.adjp)
+  max_finite_value <- max(subset.diff[is.finite(subset.diff)], na.rm = TRUE)
+  subset.diff[is.infinite(subset.diff)] <- max_finite_value
+  
+  # Order the pathways
+  ordered_indices <- order(rownames(subset.diff))
+  ordered_diff <- subset.diff[ordered_indices, ]
+  ordered_adjp <- subset.adjp[ordered_indices, ]
+  
+  # Define the color function for the heatmap
+  col_fun <- colorRamp2(c(-1, 0, 1), c("blue", "white", "red"))
+  
+  # Define the file path for saving the heatmap
+  filepath <- str_c(results_path, "/subheatmap_", compare, ".pdf")
+  
+  # Generate and save the heatmap
+  pdf(file = filepath, width = fig_wid, height = fig_ht)
+  draw(Heatmap(ordered_diff,  
+               cluster_rows = FALSE, 
+               cluster_columns = FALSE, 
+               show_row_dend = FALSE,
+               na_col = "black", 
+               col = col_fun,
+               heatmap_legend_param = list(legend_direction = "horizontal"),
+               row_names_gp = grid::gpar(fontsize = 10),
+               cell_fun = function(j, i, x, y, w, h, fill) {
+                 if (ordered_adjp[i, j] < 0.001) {
+                   grid.text("***", x, y)
+                 } else if (ordered_adjp[i, j] < 0.01) {
+                   grid.text("**", x, y)
+                 } else if (ordered_adjp[i, j] < 0.05) {
+                   grid.text("*", x, y)
+                 }
+               }), 
+       heatmap_legend_side = "bottom",
+       padding = unit(c(2, 2, 2, 40), "mm"))
+  dev.off()
+}
